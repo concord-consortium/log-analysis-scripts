@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import io
 import csv
 import json
 import argparse
@@ -29,9 +30,9 @@ def process_file(filename, json_column, fields):
   # Split fields on periods to make a list of components
   field_components = [f.split(".") for f in fields]
   # Read file line-by-line as a CSV
-  with open(filename, "r") as file:
+  with open(filename, encoding="utf-8", mode="r") as file:
       csv_reader = csv.reader(file)
-      writer = csv.writer(sys.stdout)
+      writer = csv.writer(io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8'), lineterminator='\n')
       # Get the header
       header = next(csv_reader)
       try:
