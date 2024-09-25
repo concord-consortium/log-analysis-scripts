@@ -4,6 +4,7 @@ import shortuuid
 import argparse
 import csv
 import sys
+import io
 
 parser = argparse.ArgumentParser(description="De-identify a list of columns from a CSV file.",
                                  epilog="The columns are masked using UUIDs and a separate mapping file is written to map.csv")
@@ -12,9 +13,9 @@ parser.add_argument("-c", "--column", action="append", help="Heading of a column
 parser.add_argument("-v", "--verbose", action="store_true", help="Print information while running")
 
 def deidentify_fields(filename, columns):
-    with open(filename, "r") as file:
+    with open(filename, encoding="utf-8", mode="r") as file:
         csv_reader = csv.reader(file)
-        writer = csv.writer(sys.stdout)
+        writer = csv.writer(io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8'), lineterminator='\n')
         
         # Get the header
         header = next(csv_reader)
