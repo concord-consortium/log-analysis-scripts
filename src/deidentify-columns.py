@@ -31,7 +31,8 @@ def deidentify_fields(filename, columns):
                 exit(1)
             if (args.verbose):
                 sys.stderr.write('De-identifying column: ' + col + '\n')
-        
+            id_map[col] = {}
+
         writer.writerow(header)
 
         rows = 0
@@ -46,10 +47,10 @@ def deidentify_fields(filename, columns):
                 if (data):
                     # Use the value stored in id_map if there is one; otherwise generate a new masked value
                     if (data in id_map):
-                        mask = id_map[data]
+                        mask = id_map[header[col_index]][data]
                     else:
                         mask = shortuuid.uuid(name=data)
-                        id_map[data] = mask
+                        id_map[header[col_index]][data] = mask
                     row[col_index] = mask
 
             writer.writerow(row)
@@ -59,9 +60,10 @@ def write_mapping_file(filename, map):
     with open(filename, encoding="utf-8", mode="w") as file:
         # Write a CSV file with each key from id_map in the first column and the corresponding value in the second column
         writer = csv.writer(file, lineterminator='\n')
-        writer.writerow(['original_identifier','masked_identifier'])
-        for key, value in map.items():
-            writer.writerow([key, value])
+        writer.writerow(['original_identifier','masked_identifier','column'])
+        for column, mapping in map.items():
+            for identifier, mask in mapping.items():
+                writer.writerow([identifier, mask, column])
 
 if __name__ == "__main__":
     args = parser.parse_args()
