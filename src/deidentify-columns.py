@@ -5,16 +5,16 @@ import argparse
 import csv
 import sys
 import io
-import pandas as pd
 
 parser = argparse.ArgumentParser(description="De-identify a list of columns from a CSV file.",
                                  epilog="The columns are masked using UUIDs and a separate mapping file is written to map.csv")
 parser.add_argument("filename", help="CSV file")
 parser.add_argument("-c", "--column", action="append", help="Heading of a column to de-identify. Can be specified more than once.")
 parser.add_argument("-v", "--verbose", action="store_true", help="Print information while running")
-parser.add_argument("-m", "--mapfile", action="store", help="Path to identifier mapping file")
+parser.add_argument("-m", "--mapfile", required=True, action="store", help="Path to identifier mapping file")
 
-def deidentify_fields(filename, columns, id_map):
+def deidentify_fields(filename, columns):
+    id_map = {}
     with open(filename, encoding="utf-8", mode="r") as file:
         csv_reader = csv.reader(file)
         writer = csv.writer(io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8'), lineterminator='\n')
@@ -44,22 +44,26 @@ def deidentify_fields(filename, columns, id_map):
                 data = row[col_index]
 
                 if (data):
-                    mask = shortuuid.uuid(name=data)
-                    row[col_index] = mask
-                    if data in id_map[rows - 1].values():
-                        continue
+                    # Use the value stored in id_map if there is one; otherwise generate a new masked value
+                    if (data in id_map):
+                        mask = id_map[data]
                     else:
-                        id_map[rows - 1]['original_identifier'] = data
-                        id_map[rows - 1]['masked_identifier'] = mask
+                        mask = shortuuid.uuid(name=data)
+                        id_map[data] = mask
+                    row[col_index] = mask
 
             writer.writerow(row)
-            return id_map
+        return id_map
+    
+def write_mapping_file(filename, map):
+    with open(filename, encoding="utf-8", mode="w") as file:
+        # Write a CSV file with each key from id_map in the first column and the corresponding value in the second column
+        writer = csv.writer(file, lineterminator='\n')
+        writer.writerow(['original_identifier','masked_identifier'])
+        for key, value in map.items():
+            writer.writerow([key, value])
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    id_map = [{}]
-    id_map = deidentify_fields(args.filename, args.column, id_map)
-    with open(args.mapfile, encoding="utf-8", mode="w") as file:
-        writer = csv.DictWriter(sys.stderr, fieldnames = ['original_identifier','masked_identifier'],lineterminator='\n')
-        writer.writeheader()
-        writer.writerows(id_map)
+    id_map = deidentify_fields(args.filename, args.column)
+    write_mapping_file(args.mapfile, id_map)
