@@ -78,6 +78,21 @@ Example:
 ./src/expand-json-fields.py -c parameters -f problem -f role my-data-file.csv > new-file.csv
 ```
 
+### `deidentify-columns.py`
+
+**Replace the values in one or more columns with opaque identifiers.**
+
+You specify the names of one or more columns (eg, `student name`), and each unique value will be replaced with an anonymous identifier
+(specifically, this is a short uuid built from the original value).
+
+A file is also written out with the mapping of original values to hashed values.
+
+Example:
+
+```shell
+./src/deidentify-columns.py -c student_name -c school -m mapping.csv my-data-file.csv > new-file.csv
+```
+
 ## License
 
 All content is (c) [The Concord Consortium](https://concord.org) and licensed under the [MIT License](LICENSE).
