@@ -9,8 +9,8 @@ import io
 parser = argparse.ArgumentParser(description="De-identify a list of columns from a CSV file.",
                                  epilog="The columns are masked using UUIDs and a separate mapping file is written to map.csv")
 parser.add_argument("filename", help="CSV file")
-parser.add_argument("-i", "--identifier", action="store", help="Heading of a column to de-identify. Can be specified more than once.")
-parser.add_argument("-t", "--to", action="store", help="Heading of a column to de-identify. Can be specified more than once.")
+parser.add_argument("-i", "--identifier", action="store", help="Heading of a column to de-identify.")
+parser.add_argument("-t", "--to", action="store", help="Heading of a column to de-identify.")
 parser.add_argument("-v", "--verbose", action="store_true", help="Print information while running")
 parser.add_argument("-o", "--output", required=True, action="store", help="Path to identifier mapping file")
 
