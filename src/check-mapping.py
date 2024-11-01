@@ -35,6 +35,7 @@ def remove_column(filename, identifier, to):
             sys.stderr.write('Removing column: ' + identifier + '\n')
         id_map[identifier] = {}
 
+        del header[col_indexes[1]]
         writer.writerow(header)
 
         rows = 0
@@ -50,7 +51,7 @@ def remove_column(filename, identifier, to):
                     continue
                 else:
                     id_map[identifier][id] = row[col_indexes[1]]
-
+            del row[col_indexes[1]]
             writer.writerow(row)
         return id_map
     
