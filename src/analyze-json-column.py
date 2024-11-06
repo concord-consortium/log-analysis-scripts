@@ -47,7 +47,11 @@ def parse_file(filename, json_field):
           sys.stderr.write(f"Processed {rows} rows\n")
         json_data = row[param_index]
         if (json_data):
-          data = json.loads(json_data)
+          try:
+            data = json.loads(json_data)
+          except json.JSONDecodeError:
+            sys.stderr.write(f"Error: Could not decode JSON data in row {rows}: {json_data}\n")
+            continue
           find_fields(data, fields)
   return fields
 
