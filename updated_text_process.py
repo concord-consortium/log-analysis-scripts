@@ -4,142 +4,164 @@ import argparse
 from difflib import SequenceMatcher
 
 def extract_text(json_obj):
-    """Recursively extract 'text' entries from a JSON-like structure.
-
-    Handles both dictionaries and lists by traversing nested structures.
+    """
+    Extracts 'text' entries from a nested JSON object.
+    
+    Handles both dictionaries and lists, ensuring that any nested 'text' 
+    fields are collected and returned as a list.
     """
     if isinstance(json_obj, dict):
         if 'text' in json_obj and isinstance(json_obj['text'], str):
-            return [json_obj['text']]
-        # Recursively process all dictionary values
-        return [text for value in json_obj.values() for text in extract_text(value)]
+            return [json_obj['text']]  # If the dictionary contains a text field, extract it
+        return [text for value in json_obj.values() for text in extract_text(value)]  # Extract text from dictionary values
     elif isinstance(json_obj, list):
-        # Recursively process all list elements
-        return [text for item in json_obj for text in extract_text(item)]
-    return []
+        return [text for item in json_obj for text in extract_text(item)]  # Extract text from lists
+    return []  # If not a dict or list, return an empty list
 
 def text_change_text(row):
-    """Extract raw text-change-related data from the 'parameters' column.
+    """
+    Extracts text from 'TEXT_TOOL_CHANGE' events along with its associated tileId.
 
     Returns:
-        - Extracted text (if available)
-        - Associated tile ID (if applicable)
+        - The extracted student-entered text.
+        - The tileId associated with the text (if available).
     """
     try:
-        parameters = json.loads(row['parameters'])
+        parameters = json.loads(row['parameters'])  # Load the parameters field as JSON
         
-        # Ensure event type is TEXT_TOOL_CHANGE and check for args
+        # Ensure the event type is 'TEXT_TOOL_CHANGE' and check for 'args'
         if row['event'] == 'TEXT_TOOL_CHANGE' and isinstance(parameters.get('args'), list):
-            # Handle cases where text is a list (avoid processing incorrectly)
-            if isinstance(parameters['args'][0].get('text'), list):
-                return '', parameters.get('tileId', '')
-            return parameters['args'][0].get('text', ''), parameters.get('tileId', '')
+            if isinstance(parameters['args'][0].get('text'), list):  
+                return '', parameters.get('tileId', '')  # Return empty text if it's stored as a list (avoid errors)
+            return parameters['args'][0].get('text', ''), parameters.get('tileId', '')  # Return extracted text and tileId
         
     except (json.JSONDecodeError, KeyError, TypeError):
-        pass  # Safely handle missing or malformed JSON
+        pass  # Safely handle cases where JSON is invalid or missing expected fields
     
-    return '', ''
+    return '', ''  # Default return values if extraction fails
 
 def copy_tile_text(row):
-    """Extract copied text and tileId from COPY_TILE events, ensuring the tile is text-based.
+    """
+    Extracts copied text from 'COPY_TILE' events and associates it with the tileId.
 
     Returns:
-        - Extracted copied text
-        - Tile ID (if applicable)
+        - The extracted copied text.
+        - The tileId associated with the copied text.
     """
     try:
-        parameters = json.loads(row['parameters'])
+        parameters = json.loads(row['parameters'])  # Load JSON data
         
-        if row['event'] == 'COPY_TILE':
-            serialized_object = parameters.get('serializedObject', {})
+        if row['event'] == 'COPY_TILE':  # Check if the event is 'COPY_TILE'
+            serialized_object = parameters.get('serializedObject', {})  # Get the copied object's data
             
-            # Ensure copied tile is a text tile before extracting
+            # Ensure copied tile contains text and is of type 'Text'
             if serialized_object.get('type') == 'Text' and 'text' in serialized_object:
                 extracted_text = serialized_object['text']
-                return extracted_text, parameters.get('tileId', '')
+                return extracted_text, parameters.get('tileId', '')  # Return copied text and tileId
         
     except (json.JSONDecodeError, KeyError, TypeError):
-        pass  # Handle unexpected JSON errors safely
+        pass  # Handle unexpected JSON parsing errors
     
-    return '', ''
+    return '', ''  # Default return values if extraction fails
 
 def combine_text(text_change_content):
-    """Extract and combine all 'text' entries from a text_change_text JSON field.
+    """
+    Extracts and combines all 'text' entries from a JSON field containing text change data.
 
     Returns:
-        - A concatenated string of extracted text
+        - A concatenated string of extracted text.
     """
     try:
-        parsed_content = json.loads(text_change_content)
-        extracted_texts = extract_text(parsed_content)
-        return ' '.join(extracted_texts).strip()
+        parsed_content = json.loads(text_change_content)  # Parse the JSON data
+        extracted_texts = extract_text(parsed_content)  # Extract text from the nested structure
+        return ' '.join(extracted_texts).strip()  # Join all extracted text into a single string
     except (json.JSONDecodeError, TypeError):
-        pass  # Handle cases where content is not valid JSON
-    return ''
+        pass  # Handle cases where JSON is invalid or missing
+    return ''  # Default return if extraction fails
 
 def clean_copied_text(copied_text):
-    """Extract and clean copied text from JSON format.
+    """
+    Extracts and cleans copied text from JSON format.
 
     Returns:
         - A cleaned, concatenated string of copied text.
     """
     try:
-        parsed_content = json.loads(copied_text)
-        extracted_texts = extract_text(parsed_content)
-        return ' '.join(extracted_texts).strip()
+        parsed_content = json.loads(copied_text)  # Parse copied text JSON
+        extracted_texts = extract_text(parsed_content)  # Extract text
+        return ' '.join(extracted_texts).strip()  # Join all text entries
     except (json.JSONDecodeError, TypeError):
-        pass
-    return ''
+        pass  # Handle errors
+    return ''  # Default return if extraction fails
 
 def remove_copied_text(student_text, copied_text):
-    """Use difflib to remove copied portions from student text.
+    """
+    Uses difflib to remove copied portions from the student's text.
+
+    This function compares the copied text with the student text and removes
+    sections that are exact matches.
 
     Returns:
-        - Student text with copied sections removed.
+        - Student text with copied portions removed.
     """
     if not copied_text or not student_text:
-        return student_text  # No changes needed if one of the texts is empty
+        return student_text  # If either text is empty, return original student text
     
-    matcher = SequenceMatcher(None, copied_text, student_text)
+    matcher = SequenceMatcher(None, copied_text, student_text)  # Compare copied vs. student text (Difflib)
     result = []
     
-    for tag, _, _, j1, j2 in matcher.get_opcodes():
-        if tag in ('insert', 'replace'):  # Keep only new student text
+    for tag, _, _, j1, j2 in matcher.get_opcodes(): #Difflib (I am not super familiar with difflib so maybe the issue lies here? Or it is just some fault in the logic?)
+        if tag in ('insert', 'replace'):  # Keep only the newly inserted or modified parts
             result.append(student_text[j1:j2])
     
-    return ''.join(result).strip()
+    return ''.join(result).strip()  # Return cleaned text with copied portions removed
 
 def compute_student_text(row, copy_dict):
-    """Remove copied text from student text based on tile ID mapping.
-
-    Ensures only the copied text matching a specific tile is removed.
     """
-    tile_id = row['tileId']
-    copied_text = copy_dict.get(tile_id, '')
+    Removes copied text from student text based on a mapping of tileId to copied text.
 
-    student_text = row['combined_text']
-    cleaned_text = remove_copied_text(student_text, copied_text)
+    Ensures only the copied text that matches a specific tile is removed.
 
-    return cleaned_text
+    Returns:
+        - Cleaned student-only text.
+    """
+    tile_id = row['tileId']  # Get the tile ID
+    copied_text = copy_dict.get(tile_id, '')  # Find copied text for this tile
+    
+    student_text = row['combined_text']  # Get the student's written text
+    cleaned_text = remove_copied_text(student_text, copied_text)  # Remove copied portions
+
+    return cleaned_text  # Return cleaned student-only text
 
 def process_student_logs(input_file, output_file):
-    """Processes student logs to extract and clean text while removing copied portions."""
-    df = pd.read_csv(input_file)
+    """
+    Processes student logs to extract, clean, and remove copied text.
+
+    Steps:
+        1. Extract text changes (TEXT_TOOL_CHANGE).
+        2. Extract copied text (COPY_TILE).
+        3. Map copied text to tile IDs.
+        4. Remove copied portions from student text.
+        5. Save the cleaned data to a CSV file.
+    """
+    df = pd.read_csv(input_file)  # Load CSV file
     
-    # Extract text change and associated tile ID
+    # Extract text changes and associated tileId
     df[['text_change', 'text_tileId']] = df.apply(lambda row: pd.Series(text_change_text(row)), axis=1)
     
-    # Extract copied text and tile ID from COPY_TILE events
+    # Extract copied text and tileId from COPY_TILE events
     df[['copied_text', 'copy_tileId']] = df.apply(lambda row: pd.Series(copy_tile_text(row)), axis=1)
+    
+    # Create a dictionary mapping copy_tileId to copied text
     copy_dict = df.set_index('copy_tileId')['copied_text'].dropna().to_dict()
 
-    # Combine extracted text change content
+    # Combine extracted text change content into a single string
     df['combined_text'] = df['text_change'].apply(combine_text)
 
     # Clean extracted copied text
     df['cleaned_copied_text'] = df['copied_text'].apply(clean_copied_text)
 
-    # Remove copied text from student text
+    # Remove copied text from student responses
     df['student_only_text'] = df.apply(lambda row: compute_student_text(row, copy_dict), axis=1)
     
     # Match tile IDs to pair related student and copied text
@@ -147,6 +169,7 @@ def process_student_logs(input_file, output_file):
     df_matched_pairs = df_matched_pairs[['tileId_text_change', 'combined_text_text_change', 'cleaned_copied_text_copied', 'student_only_text_text_change']]
     df_matched_pairs.columns = ['Matching Tile ID', 'Student Edited Text', 'Copied Text', 'Final Student-Only Text']
     
+    # Save processed data
     df_matched_pairs.to_csv(output_file, index=False)
 
 if __name__ == "__main__":
