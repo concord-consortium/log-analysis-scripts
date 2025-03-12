@@ -6,6 +6,7 @@ import csv
 import sys
 import io
 
+csv.field_size_limit(sys.maxsize)
 parser = argparse.ArgumentParser(description="De-identify a list of columns from a CSV file.",
                                  epilog="The columns are masked using UUIDs and a separate mapping file is written to map.csv")
 parser.add_argument("filename", help="CSV file")
