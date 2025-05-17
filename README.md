@@ -131,6 +131,20 @@ Example:
 ./src/deidentify-columns.py -c student_name -c school -m mapping.csv my-data-file.csv > new-file.csv
 ```
 
+### `process-teacher-column.py`
+
+**Extract teacher usernumbers from the teacher column and create a mapping file.**
+
+You supply the path to the student data file, and this script will extract teacher usernumbers from the teacher column to their own column.
+The column will be added after all existing columns.
+The teacher column will be removed and a mapping file relating teacher names to teacher usernumbers will be generated.
+
+Example:
+
+```shell
+./src/process-teacher-column.py student-log-file.csv -m mapping-file.csv > new-student-log-file.csv
+```
+
 ## License
 
 All content is (c) [The Concord Consortium](https://concord.org) and licensed under the [MIT License](LICENSE).
