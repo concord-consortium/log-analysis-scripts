@@ -30,7 +30,7 @@ def process_column(filename):
         if (args.verbose):
             sys.stderr.write('Processing teacher column...\n')
         id_map['teacher'] = {}
-
+        header.append('teacher')
         writer.writerow(header)
 
         rows = 0
@@ -50,6 +50,7 @@ def process_column(filename):
                     mask = re.search("\d+", data).group()
                     id_map['teacher'][teacher] = mask
                 row[col_index] = mask
+                row.append(mask)
 
             writer.writerow(row)
         return id_map
