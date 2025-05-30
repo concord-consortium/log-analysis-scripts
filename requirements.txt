@@ -3,3 +3,4 @@ shortuuid==0.5.0
 tqdm==4.28.1
 glob2==0.6
 xlrd==1.2.0
+csvkit==2.1.0
