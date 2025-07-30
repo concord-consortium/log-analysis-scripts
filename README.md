@@ -145,6 +145,32 @@ Example:
 ./src/process-teacher-column.py student-log-file.csv -m mapping-file.csv > new-student-log-file.csv
 ```
 
+### `process-teacher-file.bat (process-teacher-file.sh)`
+
+**Process a raw teacher log file.**
+
+You supply the path to the teacher data file, and this script will process the file.
+The script filters out rigse-log events and expands the parameters and extras columns.
+
+Example:
+
+```shell
+./src/process-teacher-file.bat teacher-log-file.csv processed-file.csv
+```
+
+### `process-student-file.bat (process-student-file.sh)`
+
+**Process a raw student log file.**
+
+You supply the path to the student data file, and this script will process the file.
+The script filters out rigse-log events, de-identifies the class and school columns, extracts usernumbers from the teacher column, and expands the parameters and extras columns.
+
+Example:
+
+```shell
+./src/process-student-file.bat student-log-file.csv processed-file.csv
+```
+
 ## License
 
 All content is (c) [The Concord Consortium](https://concord.org) and licensed under the [MIT License](LICENSE).
